@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Breathe</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #0a0e1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 300;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #8899bb;
+      margin-bottom: 2rem;
+    }
+
+    /* Circle area */
+    .circle-container {
+      position: relative;
+      width: 280px;
+      height: 280px;
+      margin-bottom: 2.5rem;
+    }
+
+    .circle-bg {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(100, 140, 200, 0.15);
+    }
+
+    .circle {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, rgba(80, 160, 255, 0.18), rgba(40, 80, 160, 0.06));
+      transform: scale(0.45);
+      transition: transform 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .circle.inhale {
+      animation: expand var(--inhale-duration) ease-in-out forwards;
+    }
+    .circle.hold {
+      transform: scale(1);
+    }
+    .circle.exhale {
+      animation: shrink var(--exhale-duration) ease-in-out forwards;
+    }
+
+    @keyframes expand {
+      from { transform: scale(0.45); }
+      to   { transform: scale(1); }
+    }
+    @keyframes shrink {
+      from { transform: scale(1); }
+      to   { transform: scale(0.45); }
+    }
+
+    .phase-label {
+      font-size: 1.3rem;
+      font-weight: 300;
+      letter-spacing: 0.15em;
+      color: #c0d8ff;
+      margin-bottom: 0.3rem;
+    }
+
+    .countdown {
+      font-size: 2.8rem;
+      font-weight: 200;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Progress ring */
+    .progress-ring {
+      position: absolute;
+      inset: -6px;
+      transform: rotate(-90deg);
+    }
+
+    .progress-ring circle {
+      fill: none;
+      stroke-width: 3;
+    }
+
+    .progress-ring .track {
+      stroke: rgba(100, 140, 200, 0.1);
+    }
+
+    .progress-ring .bar {
+      stroke: #5090e0;
+      stroke-linecap: round;
+      stroke-dasharray: 916;
+      stroke-dashoffset: 916;
+      transition: stroke-dashoffset 0.15s linear, stroke 0.4s ease;
+    }
+
+    .progress-ring .bar.hold-phase {
+      stroke: #7c6ae8;
+    }
+
+    .progress-ring .bar.exhale-phase {
+      stroke: #40a8a0;
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .btn {
+      background: rgba(80, 144, 224, 0.12);
+      border: 1px solid rgba(80, 144, 224, 0.25);
+      color: #a0c4f0;
+      padding: 0.65rem 2rem;
+      border-radius: 2rem;
+      font-size: 0.95rem;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: all 0.25s ease;
+    }
+
+    .btn:hover {
+      background: rgba(80, 144, 224, 0.22);
+      border-color: rgba(80, 144, 224, 0.45);
+      color: #fff;
+    }
+
+    .btn.active {
+      background: rgba(80, 144, 224, 0.3);
+      border-color: #5090e0;
+      color: #fff;
+    }
+
+    /* Settings panel */
+    .settings {
+      background: rgba(20, 28, 50, 0.7);
+      border: 1px solid rgba(80, 144, 224, 0.15);
+      border-radius: 1rem;
+      padding: 1.5rem 2rem;
+      display: none;
+      gap: 1rem;
+      width: 320px;
+    }
+
+    .settings.open {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings h2 {
+      font-size: 0.85rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: #6688aa;
+      margin-bottom: 0.3rem;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .setting-row label {
+      font-size: 0.95rem;
+      color: #99aabb;
+    }
+
+    .setting-row .value-control {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .setting-row .value-control span {
+      font-size: 1.1rem;
+      font-weight: 500;
+      color: #c8dcf0;
+      width: 2ch;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .adj-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid rgba(80, 144, 224, 0.3);
+      background: rgba(80, 144, 224, 0.08);
+      color: #8ab4e0;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      line-height: 1;
+    }
+
+    .adj-btn:hover {
+      background: rgba(80, 144, 224, 0.2);
+      color: #fff;
+    }
+
+    .adj-btn:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .hold-disabled-note {
+      font-size: 0.78rem;
+      color: #667;
+      text-align: center;
+      margin-top: -0.3rem;
+    }
+
+    /* Cycle counter */
+    .cycle-counter {
+      margin-top: 1.5rem;
+      font-size: 0.85rem;
+      color: #556;
+      letter-spacing: 0.1em;
+    }
+
+    /* Ambient glow behind circle */
+    .glow {
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(60, 120, 220, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: -1;
+    }
+
+    .circle-container .glow {
+      position: absolute;
+      inset: -60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(60, 120, 220, 0.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Instruction */
+    .instruction {
+      font-size: 0.82rem;
+      color: #445;
+      margin-top: 0.5rem;
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Breathe</h1>
+
+  <div class="circle-container">
+    <div class="glow"></div>
+    <div class="circle-bg"></div>
+    <svg class="progress-ring" viewBox="0 0 292 292">
+      <circle class="track" cx="146" cy="146" r="146"/>
+      <circle class="bar" cx="146" cy="146" r="146"/>
+    </svg>
+    <div class="circle" id="circle">
+      <div class="phase-label" id="phaseLabel">Ready</div>
+      <div class="countdown" id="countdown"></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="btn" id="startBtn" onclick="toggleExercise()">Start</button>
+    <button class="btn" id="settingsBtn" onclick="toggleSettings()">Settings</button>
+  </div>
+
+  <div class="settings" id="settingsPanel">
+    <h2>Timing (seconds)</h2>
+
+    <div class="setting-row">
+      <label>Inhale</label>
+      <div class="value-control">
+        <button class="adj-btn" onclick="adjust('inhale', -1)">−</button>
+        <span id="inhaleVal">4</span>
+        <button class="adj-btn" onclick="adjust('inhale', 1)">+</button>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <label>Hold</label>
+      <div class="value-control">
+        <button class="adj-btn" onclick="adjust('hold', -1)">−</button>
+        <span id="holdVal">4</span>
+        <button class="adj-btn" onclick="adjust('hold', 1)">+</button>
+      </div>
+    </div>
+    <div class="hold-disabled-note" id="holdNote" style="display:none">Hold phase removed</div>
+
+    <div class="setting-row">
+      <label>Exhale</label>
+      <div class="value-control">
+        <button class="adj-btn" onclick="adjust('exhale', -1)">−</button>
+        <span id="exhaleVal">8</span>
+        <button class="adj-btn" onclick="adjust('exhale', 1)">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="cycle-counter" id="cycleCounter"></div>
+  <div class="instruction" id="instruction">Press Start to begin</div>
+
+  <script>
+    // State
+    let settings = { inhale: 4, hold: 4, exhale: 8 };
+    let running = false;
+    let currentPhase = null; // 'inhale' | 'hold' | 'exhale'
+    let remaining = 0;
+    let timer = null;
+    let cycles = 0;
+
+    // DOM
+    const circle = document.getElementById('circle');
+    const phaseLabel = document.getElementById('phaseLabel');
+    const countdown = document.getElementById('countdown');
+    const startBtn = document.getElementById('startBtn');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const cycleCounter = document.getElementById('cycleCounter');
+    const instruction = document.getElementById('instruction');
+    const progressBar = document.querySelector('.progress-ring .bar');
+    const holdNote = document.getElementById('holdNote');
+
+    const circumference = 2 * Math.PI * 146;
+    progressBar.style.strokeDasharray = circumference;
+    progressBar.style.strokeDashoffset = circumference;
+
+    function updateCSSDurations() {
+      circle.style.setProperty('--inhale-duration', settings.inhale + 's');
+      circle.style.setProperty('--exhale-duration', settings.exhale + 's');
+    }
+    updateCSSDurations();
+
+    function setProgress(fraction, phase) {
+      const offset = circumference * (1 - fraction);
+      progressBar.style.strokeDashoffset = offset;
+      progressBar.classList.remove('hold-phase', 'exhale-phase');
+      if (phase === 'hold') progressBar.classList.add('hold-phase');
+      if (phase === 'exhale') progressBar.classList.add('exhale-phase');
+    }
+
+    function toggleExercise() {
+      if (running) {
+        stop();
+      } else {
+        start();
+      }
+    }
+
+    function start() {
+      running = true;
+      cycles = 0;
+      startBtn.textContent = 'Stop';
+      startBtn.classList.add('active');
+      instruction.textContent = '';
+      cycleCounter.textContent = '';
+      // Close settings
+      settingsPanel.classList.remove('open');
+      startPhase('inhale');
+    }
+
+    function stop() {
+      running = false;
+      clearInterval(timer);
+      timer = null;
+      currentPhase = null;
+      startBtn.textContent = 'Start';
+      startBtn.classList.remove('active');
+      phaseLabel.textContent = 'Ready';
+      countdown.textContent = '';
+      instruction.textContent = 'Press Start to begin';
+      circle.className = 'circle';
+      // Reset circle to small
+      circle.style.transform = 'scale(0.45)';
+      setTimeout(() => circle.style.transform = '', 50);
+      setProgress(0, 'inhale');
+      if (cycles > 0) {
+        cycleCounter.textContent = `${cycles} cycle${cycles !== 1 ? 's' : ''} completed`;
+      }
+    }
+
+    function startPhase(phase) {
+      if (!running) return;
+
+      // Skip hold if duration is 0
+      if (phase === 'hold' && settings.hold === 0) {
+        startPhase('exhale');
+        return;
+      }
+
+      currentPhase = phase;
+      remaining = settings[phase];
+
+      // Reset animation classes
+      circle.classList.remove('inhale', 'hold', 'exhale');
+
+      // Trigger reflow so animation restarts
+      void circle.offsetWidth;
+
+      circle.classList.add(phase);
+
+      const labels = { inhale: 'Breathe In', hold: 'Hold', exhale: 'Breathe Out' };
+      phaseLabel.textContent = labels[phase];
+      countdown.textContent = remaining;
+
+      // Progress
+      const total = settings[phase];
+      setProgress(0, phase);
+
+      clearInterval(timer);
+      const startTime = Date.now();
+
+      timer = setInterval(() => {
+        if (!running) return;
+
+        const elapsed = (Date.now() - startTime) / 1000;
+        const timeLeft = Math.max(0, total - elapsed);
+        const displayTime = Math.ceil(timeLeft);
+
+        if (displayTime !== remaining) {
+          remaining = displayTime;
+          countdown.textContent = remaining > 0 ? remaining : '';
+        }
+
+        // Smooth progress
+        const fraction = Math.min(elapsed / total, 1);
+        setProgress(fraction, phase);
+
+        if (elapsed >= total) {
+          clearInterval(timer);
+          nextPhase();
+        }
+      }, 50);
+    }
+
+    function nextPhase() {
+      if (!running) return;
+
+      if (currentPhase === 'inhale') {
+        startPhase('hold');
+      } else if (currentPhase === 'hold') {
+        startPhase('exhale');
+      } else {
+        cycles++;
+        cycleCounter.textContent = `Cycle ${cycles}`;
+        startPhase('inhale');
+      }
+    }
+
+    function toggleSettings() {
+      settingsPanel.classList.toggle('open');
+    }
+
+    function adjust(key, delta) {
+      const min = 0;
+      const max = 20;
+
+      // inhale and exhale minimum is 1
+      const effectiveMin = key === 'hold' ? 0 : 1;
+
+      settings[key] = Math.min(max, Math.max(effectiveMin, settings[key] + delta));
+      document.getElementById(key + 'Val').textContent = settings[key];
+
+      if (key === 'hold') {
+        holdNote.style.display = settings.hold === 0 ? 'block' : 'none';
+      }
+
+      updateCSSDurations();
+
+      // Update adjacent buttons disabled state
+      updateAdjButtons();
+    }
+
+    function updateAdjButtons() {
+      const rows = settingsPanel.querySelectorAll('.setting-row');
+      rows.forEach(row => {
+        const label = row.querySelector('label').textContent.toLowerCase();
+        const btns = row.querySelectorAll('.adj-btn');
+        const effectiveMin = label === 'hold' ? 0 : 1;
+        btns[0].disabled = settings[label] <= effectiveMin;
+        btns[1].disabled = settings[label] >= 20;
+      });
+    }
+    updateAdjButtons();
+  </script>
+</body>
+</html>
